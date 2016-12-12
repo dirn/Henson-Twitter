@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 setup(
     name='Henson-Twitter',
     version='0.1.0',
-    packages=find_packages(exclude=['tests']),
+    py_modules=['henson_twitter'],
     install_requires=[
         'aiohttp',
         'Henson',

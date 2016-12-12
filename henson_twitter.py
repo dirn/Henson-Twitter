@@ -1,6 +1,8 @@
 """Henson-Twitter."""
 
+import asyncio
 import base64
+from copy import deepcopy
 from hashlib import sha1
 import hmac
 import json
@@ -56,6 +58,8 @@ class Consumer:
         self._session = aiohttp.ClientSession()
         self.app.teardown(self._disconnect)
 
+        self.filter = deepcopy(self.app.settings['TWITTER_FILTER'])
+
         self._response = None
 
         self._chunks = []
@@ -68,7 +72,8 @@ class Consumer:
         while True:
             chunk = await self._response.content.read(CHUNK_SIZE)
             if not chunk:
-                break
+                await asyncio.sleep(0.1)
+                continue
 
             chunk = chunk.decode('utf-8')
 
@@ -82,7 +87,9 @@ class Consumer:
 
             self._chunks.append(chunk)
 
-        return json.loads(tweet)
+        message = json.loads(tweet)
+        message['filter'] = ''.join(self.filter.values())
+        return message
 
     async def _connect(self):
         self._signature = HmacSha1Signature()
@@ -95,7 +102,7 @@ class Consumer:
             'oauth_token': self.app.settings['TWITTER_OAUTH_TOKEN'],
         }
 
-        params.update(self.app.settings['TWITTER_FILTER'])
+        params.update(self.filter)
 
         params['oauth_signature'] = self._signature.sign(
             self.app.settings['TWITTER_CONSUMER_SECRET'],
